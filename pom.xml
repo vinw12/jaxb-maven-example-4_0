@@ -1,0 +1,126 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
+             http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>com.example</groupId>
+    <artifactId>jaxb-maven-example</artifactId>
+    <version>1.0-SNAPSHOT</version>
+    <packaging>jar</packaging>
+
+    <name>JAXB Maven Example</name>
+    <description>
+        Demonstrates generating immutable Java classes from an XML schema using
+        org.jvnet.jaxb:jaxb-maven-plugin and com.github.sabomichal:immutable-xjc-plugin.
+    </description>
+
+    <properties>
+        <maven.compiler.source>17</maven.compiler.source>
+        <maven.compiler.target>17</maven.compiler.target>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+
+        <jaxb.maven.plugin.version>4.0.12</jaxb.maven.plugin.version>
+        <immutable.xjc.version>2.0.7</immutable.xjc.version>
+        <jakarta.xml.bind.version>4.0.2</jakarta.xml.bind.version>
+        <jaxb.impl.version>4.0.5</jaxb.impl.version>
+        <junit.version>5.10.2</junit.version>
+    </properties>
+
+    <dependencies>
+        <!-- Jakarta XML Binding API (JAXB 4.0) -->
+        <dependency>
+            <groupId>jakarta.xml.bind</groupId>
+            <artifactId>jakarta.xml.bind-api</artifactId>
+            <version>${jakarta.xml.bind.version}</version>
+        </dependency>
+
+        <!-- JAXB reference implementation (runtime) -->
+        <dependency>
+            <groupId>com.sun.xml.bind</groupId>
+            <artifactId>jaxb-impl</artifactId>
+            <version>${jaxb.impl.version}</version>
+            <scope>runtime</scope>
+        </dependency>
+
+        <!-- JUnit 5 for testing -->
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <version>${junit.version}</version>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <!-- Compiler plugin: target Java 17 -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.13.0</version>
+                <configuration>
+                    <source>${maven.compiler.source}</source>
+                    <target>${maven.compiler.target}</target>
+                </configuration>
+            </plugin>
+
+            <!-- Surefire plugin: run JUnit 5 tests -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>3.2.5</version>
+            </plugin>
+
+            <!--
+                JAXB Maven Plugin
+                https://github.com/highsource/jaxb-tools/wiki/JAXB-Maven-Plugin
+
+                Generates Java classes from the XML schema in src/main/resources.
+                The immutable-xjc-plugin dependency is added here so XJC can use it
+                via the -Ximm and -Ximm-builder arguments to produce immutable classes
+                with a builder pattern.
+            -->
+            <plugin>
+                <groupId>org.jvnet.jaxb</groupId>
+                <artifactId>jaxb-maven-plugin</artifactId>
+                <version>${jaxb.maven.plugin.version}</version>
+                <dependencies>
+                    <!--
+                        immutable-xjc
+                        https://github.com/sabomichal/immutable-xjc
+                        Makes XJC-generated classes immutable.
+                    -->
+                    <dependency>
+                        <groupId>com.github.sabomichal</groupId>
+                        <artifactId>immutable-xjc-plugin</artifactId>
+                        <version>${immutable.xjc.version}</version>
+                    </dependency>
+                </dependencies>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>generate</goal>
+                        </goals>
+                        <configuration>
+                            <!--
+                                XSD files are picked up automatically from
+                                src/main/resources (the plugin default).
+                            -->
+                            <extension>true</extension>
+                            <args>
+                                <!-- Enable immutable-xjc: removes setters, marks fields/classes final -->
+                                <arg>-Ximm</arg>
+                                <!-- Generate builder-pattern utility classes -->
+                                <arg>-Ximm-builder</arg>
+                                <!-- Use simpler Foo.builder() / Foo.Builder naming -->
+                                <arg>-Ximm-simplebuildername</arg>
+                            </args>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+</project>
