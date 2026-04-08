@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    Namespace notes (jaxb-tools v4 / Jakarta EE):
+      jaxb  – Jakarta JAXB binding customization namespace (Jakarta EE version)
+      annox – base annox namespace consumed by jaxb-plugin-annotate (v4 URN)
+      jvc   – package namespace for jakarta.validation.constraints (annox URN
+              convention: urn:jaxb.jvnet.org:annox:<package>)
+
+    The jaxb:extensionBindingPrefixes attribute tells XJC that "annox" is a
+    vendor extension so it does not reject the annox:annotate elements.
+-->
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+           targetNamespace="http://example.com/library"
+           xmlns:tns="http://example.com/library"
+           xmlns:jaxb="https://jakarta.ee/xml/ns/jaxb"
+           xmlns:annox="urn:jaxb.jvnet.org:annox"
+           xmlns:jvc="urn:jaxb.jvnet.org:annox:jakarta.validation.constraints"
+           jaxb:version="3.0"
+           jaxb:extensionBindingPrefixes="annox"
+           elementFormDefault="qualified">
+
+    <!-- Root element -->
+    <xs:element name="library" type="tns:Library"/>
+
+    <!-- A library has a name and contains zero or more books -->
+    <xs:complexType name="Library">
+        <xs:sequence>
+            <xs:element name="book" type="tns:Book" minOccurs="0" maxOccurs="unbounded"/>
+        </xs:sequence>
+        <xs:attribute name="name" type="xs:string" use="required"/>
+    </xs:complexType>
+
+    <!--
+        A book has a title, author, ISBN and publication year.
+        The title, author, and isbn elements are annotated with
+        @jakarta.validation.constraints.NotNull via jaxb-plugin-annotate so that
+        Spring Boot's Bean Validation integration can enforce these constraints.
+    -->
+    <xs:complexType name="Book">
+        <xs:sequence>
+            <xs:element name="title" type="xs:string">
+                <xs:annotation>
+                    <xs:appinfo>
+                        <annox:annotate target="field"><jvc:NotNull/></annox:annotate>
+                    </xs:appinfo>
+                </xs:annotation>
+            </xs:element>
+            <xs:element name="author" type="xs:string">
+                <xs:annotation>
+                    <xs:appinfo>
+                        <annox:annotate target="field"><jvc:NotNull/></annox:annotate>
+                    </xs:appinfo>
+                </xs:annotation>
+            </xs:element>
+            <xs:element name="isbn" type="xs:string">
+                <xs:annotation>
+                    <xs:appinfo>
+                        <annox:annotate target="field"><jvc:NotNull/></annox:annotate>
+                    </xs:appinfo>
+                </xs:annotation>
+            </xs:element>
+            <xs:element name="year" type="xs:int"/>
+        </xs:sequence>
+    </xs:complexType>
+
+</xs:schema>
