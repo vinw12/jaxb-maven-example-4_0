@@ -5,6 +5,17 @@
              http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
+    <!--
+        Spring Boot 3.0 parent provides dependency management (Jakarta EE 10,
+        JUnit 5, Jackson, etc.) and pre-configured build plugins.
+    -->
+    <parent>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-parent</artifactId>
+        <version>3.0.13</version>
+        <relativePath/>
+    </parent>
+
     <groupId>com.example</groupId>
     <artifactId>jaxb-maven-example</artifactId>
     <version>1.0-SNAPSHOT</version>
@@ -12,23 +23,38 @@
 
     <name>JAXB Maven Example</name>
     <description>
-        Demonstrates generating immutable Java classes from an XML schema using
-        org.jvnet.jaxb:jaxb-maven-plugin and com.github.sabomichal:immutable-xjc-plugin.
+        Spring Boot 3.0 project demonstrating XSD-to-Java code generation via
+        org.jvnet.jaxb:jaxb-maven-plugin with immutable-xjc and jaxb-annotate-plugin.
     </description>
 
     <properties>
-        <maven.compiler.source>17</maven.compiler.source>
-        <maven.compiler.target>17</maven.compiler.target>
+        <java.version>17</java.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 
         <jaxb.maven.plugin.version>4.0.12</jaxb.maven.plugin.version>
         <immutable.xjc.version>2.0.7</immutable.xjc.version>
+        <!-- Override the version managed by Spring Boot BOM -->
         <jakarta.xml.bind.version>4.0.2</jakarta.xml.bind.version>
         <jaxb.impl.version>4.0.5</jaxb.impl.version>
-        <junit.version>5.10.2</junit.version>
     </properties>
 
     <dependencies>
+        <!-- Spring Boot core: auto-configuration, logging, etc. -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter</artifactId>
+        </dependency>
+
+        <!--
+            Bean Validation (Hibernate Validator) – used at runtime to enforce
+            the @NotNull constraints that jaxb-annotate-plugin injects into the
+            generated Book fields.
+        -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-validation</artifactId>
+        </dependency>
+
         <!-- Jakarta XML Binding API (JAXB 4.0) -->
         <dependency>
             <groupId>jakarta.xml.bind</groupId>
@@ -44,33 +70,23 @@
             <scope>runtime</scope>
         </dependency>
 
-        <!-- JUnit 5 for testing -->
+        <!-- Spring Boot test slice (includes JUnit 5 + AssertJ) -->
         <dependency>
-            <groupId>org.junit.jupiter</groupId>
-            <artifactId>junit-jupiter</artifactId>
-            <version>${junit.version}</version>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
             <scope>test</scope>
         </dependency>
     </dependencies>
 
     <build>
         <plugins>
-            <!-- Compiler plugin: target Java 17 -->
+            <!--
+                Spring Boot Maven Plugin – repackages the JAR as an executable
+                Spring Boot fat-jar.
+            -->
             <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-compiler-plugin</artifactId>
-                <version>3.13.0</version>
-                <configuration>
-                    <source>${maven.compiler.source}</source>
-                    <target>${maven.compiler.target}</target>
-                </configuration>
-            </plugin>
-
-            <!-- Surefire plugin: run JUnit 5 tests -->
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-surefire-plugin</artifactId>
-                <version>3.2.5</version>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
             </plugin>
 
             <!--
@@ -78,9 +94,13 @@
                 https://github.com/highsource/jaxb-tools/wiki/JAXB-Maven-Plugin
 
                 Generates Java classes from the XML schema in src/main/resources.
-                The immutable-xjc-plugin dependency is added here so XJC can use it
-                via the -Ximm and -Ximm-builder arguments to produce immutable classes
-                with a builder pattern.
+                Two XJC extension plugins are added as dependencies:
+
+                  1. immutable-xjc  – removes setters, marks fields/classes final,
+                                      generates builder utility classes.
+                  2. jaxb-annotate-plugin – reads annotation definitions embedded in
+                                      the XSD (via the annox namespace) and adds them
+                                      to the generated Java sources.
             -->
             <plugin>
                 <groupId>org.jvnet.jaxb</groupId>
@@ -90,12 +110,32 @@
                     <!--
                         immutable-xjc
                         https://github.com/sabomichal/immutable-xjc
-                        Makes XJC-generated classes immutable.
                     -->
                     <dependency>
                         <groupId>com.github.sabomichal</groupId>
                         <artifactId>immutable-xjc-plugin</artifactId>
                         <version>${immutable.xjc.version}</version>
+                    </dependency>
+                    <!--
+                        JAXB Annotate Plugin
+                        https://github.com/highsource/jaxb-tools/wiki/JAXB-Annotate-Home
+                        Adds arbitrary Java annotations to generated classes by reading
+                        annox:annotate customizations defined inline in the XSD.
+                    -->
+                    <dependency>
+                        <groupId>org.jvnet.jaxb</groupId>
+                        <artifactId>jaxb-plugin-annotate</artifactId>
+                        <version>${jaxb.maven.plugin.version}</version>
+                    </dependency>
+                    <!--
+                        Jakarta Bean Validation API is needed on the XJC classpath so
+                        jaxb-plugin-annotate can resolve @NotNull and other constraint
+                        annotation classes while generating sources.
+                    -->
+                    <dependency>
+                        <groupId>jakarta.validation</groupId>
+                        <artifactId>jakarta.validation-api</artifactId>
+                        <version>3.0.2</version>
                     </dependency>
                 </dependencies>
                 <executions>
@@ -110,12 +150,18 @@
                             -->
                             <extension>true</extension>
                             <args>
-                                <!-- Enable immutable-xjc: removes setters, marks fields/classes final -->
+                                <!-- immutable-xjc: removes setters, marks fields/classes final -->
                                 <arg>-Ximm</arg>
-                                <!-- Generate builder-pattern utility classes -->
+                                <!-- immutable-xjc: generate builder-pattern utility classes -->
                                 <arg>-Ximm-builder</arg>
-                                <!-- Use simpler Foo.builder() / Foo.Builder naming -->
+                                <!-- immutable-xjc: use Foo.builder()/Foo.Builder naming -->
                                 <arg>-Ximm-simplebuildername</arg>
+                                <!--
+                                    jaxb-annotate-plugin: reads annox:annotate elements
+                                    from the XSD and adds the specified Java annotations
+                                    to the generated sources.
+                                -->
+                                <arg>-Xannotate</arg>
                             </args>
                         </configuration>
                     </execution>

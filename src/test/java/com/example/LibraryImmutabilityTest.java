@@ -2,6 +2,7 @@ package com.example;
 
 import com.example.library.Book;
 import com.example.library.Library;
+import jakarta.validation.constraints.NotNull;
 import org.junit.jupiter.api.Test;
 
 import java.lang.reflect.Field;
@@ -13,15 +14,14 @@ import java.util.List;
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
- * Verifies that the JAXB-generated classes are immutable as required by the
- * immutable-xjc plugin configuration in pom.xml.
+ * Verifies the properties of the JAXB-generated classes:
  *
- * <p>Immutability guarantees enforced by immutable-xjc:
  * <ul>
- *   <li>No public setter methods</li>
- *   <li>All declared fields are {@code final}</li>
- *   <li>Classes themselves are {@code final}</li>
- *   <li>Builder utility classes are generated for convenient construction</li>
+ *   <li><b>Immutability</b> – enforced by immutable-xjc (no setters, final fields
+ *       and classes, builder utility classes).</li>
+ *   <li><b>Annotation injection</b> – enforced by jaxb-annotate-plugin
+ *       ({@code @NotNull} on the required Book fields as declared in
+ *       {@code library.xsd} via annox customizations).</li>
  * </ul>
  */
 class LibraryImmutabilityTest {
@@ -80,6 +80,31 @@ class LibraryImmutabilityTest {
         assertEquals("Joshua Bloch",        book.getAuthor());
         assertEquals("978-0134685991",      book.getIsbn());
         assertEquals(2018,                  book.getYear());
+    }
+
+    // -----------------------------------------------------------------------
+    // Book – @NotNull annotations injected by jaxb-annotate-plugin
+    // -----------------------------------------------------------------------
+
+    @Test
+    void book_titleFieldHasNotNullAnnotation() throws NoSuchFieldException {
+        Field titleField = Book.class.getDeclaredField("title");
+        assertNotNull(titleField.getAnnotation(NotNull.class),
+                "Book.title should carry @NotNull injected by jaxb-annotate-plugin");
+    }
+
+    @Test
+    void book_authorFieldHasNotNullAnnotation() throws NoSuchFieldException {
+        Field authorField = Book.class.getDeclaredField("author");
+        assertNotNull(authorField.getAnnotation(NotNull.class),
+                "Book.author should carry @NotNull injected by jaxb-annotate-plugin");
+    }
+
+    @Test
+    void book_isbnFieldHasNotNullAnnotation() throws NoSuchFieldException {
+        Field isbnField = Book.class.getDeclaredField("isbn");
+        assertNotNull(isbnField.getAnnotation(NotNull.class),
+                "Book.isbn should carry @NotNull injected by jaxb-annotate-plugin");
     }
 
     // -----------------------------------------------------------------------
